@@ -19,7 +19,11 @@
 
 ## 安装
 
-脚本发布后，可以通过 GreasyFork 安装；也可以手动将 [`Make Bilibili Better.user.js`](./Make%20Bilibili%20Better.user.js) 导入你的用户脚本管理器。
+先安装浏览器扩展 [Tampermonkey](https://www.tampermonkey.net/)。
+
+然后通过 Greasy Fork 安装脚本：
+
+[安装 Make Bilibili Better](https://greasyfork.org/zh-CN/scripts/572675-make-bilibili-better)
 
 ## 主要支持页面
 
