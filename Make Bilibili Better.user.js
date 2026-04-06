@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Make Bilibili Better
 // @namespace    local.make-bilibili-better
-// @version      1.1.0
+// @version      1.1.1
 // @description  优化哔哩哔哩网页体验，提供首页净化、动态页宽屏、专栏复制、视频裁切模式、链接参数清理，以及高画质与直播 / 番剧增强。
 // @author       ArcherEmiya
 // @license      MIT

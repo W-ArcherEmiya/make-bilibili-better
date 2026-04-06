@@ -41,32 +41,10 @@
 - `https://www.bilibili.com/festival/*`
 - `https://www.bilibili.com/blackboard/*`
 
-## 项目结构
-
-当前脚本采用“模块化单文件”结构，仍然只维护一个 userscript 文件，但内部按职责拆成四层：
-
-- `CONFIG`：统一管理站点、路径、存储键、UA 和参数规则
-- `page / utils / urlTools`：页面判断、通用工具和 URL 处理
-- `modules`：每个功能一个独立模块，统一实现 `shouldRun()` 和 `install()`
-- `startup`：分成“早期补丁”和“DOM 就绪后模块”两阶段启动
-
-这样的组织方式可以保持发布文件仍然只有一个，同时让后续加功能、排查问题和做页面适配更清晰。
-
-## 1.1.0 新增内容
+## 1.1.1 新增内容
 
 - 新增杜比全景声 / 8K / HDR / 直播高画质能力补丁
 - 统一早期补丁与 DOM 功能的启动流程，便于后续继续扩展
-
-## 开发说明
-
-- 许可证：MIT
-- 主文件：[`Make Bilibili Better.user.js`](./Make%20Bilibili%20Better.user.js)
-- 当前版本：`1.1.0`
-- 当前版本为独立重写后的发布候选版本，后续建议继续沿用“模块化单文件”结构维护
-
-## 项目地址
-
-https://github.com/W-ArcherEmiya/make-bilibili-better
 
 ## 致谢
 
