@@ -24,11 +24,9 @@ https://github.com/W-ArcherEmiya/make-bilibili-better
 部分功能思路参考自 kookxiang 的 `Make BiliBili Great Again`
 https://github.com/kookxiang/Make-BiliBili-Great-Again
 
-脚本目标是尽量保持轻量、直接和少打扰，在不破坏原站主要交互的前提下，补上一些更顺手的网页端体验。
-
 ## 版本说明
 
-当前发布版本：`v1.1.0`
+当前发布版本：`v1.1.1`
 
 本次更新包含：
 
