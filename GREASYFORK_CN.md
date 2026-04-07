@@ -26,7 +26,7 @@ https://github.com/kookxiang/Make-BiliBili-Great-Again
 
 ## 版本说明
 
-当前发布版本：`v1.1.1`
+当前发布版本：`v1.1.2`
 
 本次更新包含：
 
