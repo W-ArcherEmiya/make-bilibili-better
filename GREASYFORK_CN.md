@@ -1,5 +1,3 @@
-# GreasyFork 发布文案
-
 ## 简介
 
 Make Bilibili Better 是一个用于优化哔哩哔哩网页体验的用户脚本。
