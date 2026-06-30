@@ -1,11 +1,12 @@
 // ==UserScript==
 // @name         Make Bilibili Better
 // @namespace    local.make-bilibili-better
-// @version      1.1.2
-// @description  优化哔哩哔哩网页体验，提供首页广告净化、动态页宽屏、专栏复制、视频裁切模式、链接参数清理，以及杜比高画质与直播 / 番剧增强。
+// @version      1.2.1
+// @description  优化哔哩哔哩网页体验，提供首页广告净化、动态页宽屏、专栏复制、视频裁切模式、链接参数清理、自适应海外播放 CDN 加速，以及杜比高画质与直播 / 番剧增强。
 // @author       ArcherEmiya
 // @license      MIT
 // @match        https://*.bilibili.com/*
+// @match        https://*.bilibili.tv/*
 // @run-at       document-start
 // @grant        unsafeWindow
 // @grant        GM_addStyle
@@ -224,6 +225,599 @@
     };
 
     const modules = {
+        playbackCdnAccelerator: {
+            storageKey: 'biliAccelerator.config.v1',
+            mediaPathPattern: /\.(m4s|mp4|flv|m3u8)(?:$|[?#])/i,
+            ipPattern: /^(?:\d{1,3}\.){3}\d{1,3}$/,
+            xyMcdnPattern: /^xy(?:\d+x){3}\d+xy\.mcdn\.bilivideo\.(?:cn|com|net)$/i,
+            defaultConfig: Object.freeze({
+                enabled: true,
+                autoAdapt: true,
+                adaptiveLevel: 0,
+                mode: 'bad-only',
+                pcdnHost: 'upos-sz-mirrorcos.bilivideo.com',
+                mcdnStrategy: 'proxy-all',
+                proxyHost: 'proxy-tf-all-ws.bilivideo.com',
+                rewriteAkamai: false,
+                maxDepth: 20,
+            }),
+            state: {
+                rewrites: [],
+                rewriteCount: 0,
+                lastSource: '',
+                playbackIssues: [],
+                adaptiveReason: '',
+                lastAdaptiveAt: 0,
+            },
+            config: null,
+            nativeJsonParse: null,
+
+            shouldRun() {
+                return /(^|\.)bilibili\.(com|tv)$/i.test(location.hostname);
+            },
+
+            shouldMonitorPlayback() {
+                return page.needsPlaybackCapabilityPatch() || location.hostname.endsWith('.bilibili.tv');
+            },
+
+            getBufferedAhead(video) {
+                if (!(video instanceof HTMLVideoElement) || !video.buffered) {
+                    return 0;
+                }
+
+                const currentTime = video.currentTime || 0;
+                for (let index = 0; index < video.buffered.length; index += 1) {
+                    const start = video.buffered.start(index);
+                    const end = video.buffered.end(index);
+                    if (currentTime >= start && currentTime <= end) {
+                        return Math.max(0, end - currentTime);
+                    }
+                }
+
+                return 0;
+            },
+
+            isLikelyRealPlaybackIssue(video, reason) {
+                if (!(video instanceof HTMLVideoElement)) {
+                    return false;
+                }
+
+                if (video.paused || video.ended || video.seeking || video.currentTime < 1) {
+                    return false;
+                }
+
+                if (reason === 'error') {
+                    return true;
+                }
+
+                const remaining = Number.isFinite(video.duration) ? video.duration - video.currentTime : 999;
+                if (remaining < 8) {
+                    return false;
+                }
+
+                return video.readyState < HTMLMediaElement.HAVE_FUTURE_DATA || this.getBufferedAhead(video) < 2.5;
+            },
+
+            recordPlaybackIssue(root, video, reason) {
+                if (!this.config?.enabled || !this.config.autoAdapt || !this.shouldMonitorPlayback()) {
+                    return;
+                }
+
+                if (!this.isLikelyRealPlaybackIssue(video, reason)) {
+                    return;
+                }
+
+                const now = Date.now();
+                this.state.playbackIssues.push({
+                    at: now,
+                    reason,
+                    bufferedAhead: this.getBufferedAhead(video),
+                    readyState: video.readyState,
+                });
+                this.state.playbackIssues = this.state.playbackIssues.filter(item => now - item.at <= 45000);
+
+                const issueCount = this.state.playbackIssues.length;
+                const hasHardFailure = reason === 'error';
+                if (issueCount >= 3 || hasHardFailure) {
+                    this.adaptPlaybackStrategy(root, `${reason}:${issueCount}`);
+                }
+            },
+
+            adaptPlaybackStrategy(root, reason) {
+                const now = Date.now();
+                if (now - this.state.lastAdaptiveAt < 60000) {
+                    return;
+                }
+
+                if (this.config.adaptiveLevel >= 1 && this.config.mode === 'force' && this.config.rewriteAkamai) {
+                    return;
+                }
+
+                this.state.lastAdaptiveAt = now;
+                this.state.adaptiveReason = reason;
+                this.saveConfig(root, Object.assign({}, this.config, {
+                    adaptiveLevel: 1,
+                    mode: 'force',
+                    mcdnStrategy: 'proxy-all',
+                    rewriteAkamai: true,
+                }));
+
+                console.info('[Make Bilibili Better] playback CDN strategy escalated after stutter', {
+                    reason,
+                    config: this.config,
+                });
+
+                this.reloadPlaybackOnce(root, reason);
+            },
+
+            reloadPlaybackOnce(root, reason) {
+                let markerKey = '';
+                try {
+                    markerKey = `mbb-accelerator-adapted:${location.origin}${location.pathname}${location.search}`;
+                    if (root.sessionStorage.getItem(markerKey) === '1') {
+                        return;
+                    }
+                    root.sessionStorage.setItem(markerKey, '1');
+                } catch (error) {
+                    // Continue without loop protection if sessionStorage is blocked.
+                }
+
+                setTimeout(() => {
+                    try {
+                        root.location.reload();
+                    } catch (error) {
+                        console.warn('[Make Bilibili Better] playback reload after CDN strategy change failed', reason, error);
+                    }
+                }, 800);
+            },
+
+            collectVideos(root = document) {
+                const videos = [];
+
+                if (root instanceof HTMLVideoElement) {
+                    videos.push(root);
+                }
+
+                if (typeof root.querySelectorAll === 'function') {
+                    videos.push(...root.querySelectorAll('video'));
+                }
+
+                return utils.uniqueElements(videos);
+            },
+
+            attachPlaybackMonitor(root, target = document) {
+                this.collectVideos(target).forEach(video => {
+                    if (!(video instanceof HTMLVideoElement) || video.dataset.mbbCdnMonitorBound === '1') {
+                        return;
+                    }
+
+                    video.dataset.mbbCdnMonitorBound = '1';
+                    video.addEventListener('waiting', () => this.recordPlaybackIssue(root, video, 'waiting'));
+                    video.addEventListener('stalled', () => this.recordPlaybackIssue(root, video, 'stalled'));
+                    video.addEventListener('error', () => this.recordPlaybackIssue(root, video, 'error'));
+
+                    setInterval(() => {
+                        if (!video.isConnected) {
+                            return;
+                        }
+
+                        if (!video.paused && !video.ended && this.getBufferedAhead(video) < 1.5 && video.readyState < HTMLMediaElement.HAVE_ENOUGH_DATA) {
+                            this.recordPlaybackIssue(root, video, 'low-buffer');
+                        }
+                    }, 4000);
+                });
+            },
+
+            normalizeConfig(config) {
+                return Object.assign({}, this.defaultConfig, config || {});
+            },
+
+            loadConfig(root) {
+                try {
+                    const stored = root.localStorage.getItem(this.storageKey);
+                    return this.normalizeConfig(stored ? JSON.parse(stored) : null);
+                } catch (error) {
+                    return this.normalizeConfig();
+                }
+            },
+
+            saveConfig(root, nextConfig) {
+                this.config = this.normalizeConfig(nextConfig);
+                root.localStorage.setItem(this.storageKey, JSON.stringify(this.config));
+            },
+
+            hasBiliMediaSignal(value) {
+                return typeof value === 'string'
+                    && (
+                        value.includes('bilivideo')
+                        || value.includes('akamaized.net')
+                        || value.includes('szbdyd.com')
+                        || value.includes('/upgcxcode/')
+                        || value.includes('/v1/resource/')
+                    );
+            },
+
+            parseUrl(value) {
+                if (!this.hasBiliMediaSignal(value)) {
+                    return null;
+                }
+
+                try {
+                    const url = new URL(value);
+                    if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+                        return null;
+                    }
+                    return url;
+                } catch (error) {
+                    return null;
+                }
+            },
+
+            isMediaUrl(url) {
+                return this.mediaPathPattern.test(url.pathname + url.search)
+                    || url.pathname.startsWith('/upgcxcode/')
+                    || url.pathname.startsWith('/v1/resource/');
+            },
+
+            isMcdnHost(hostname) {
+                return /\.mcdn\.bilivideo\.(?:cn|com|net)$/i.test(hostname);
+            },
+
+            isPcdnHost(url) {
+                return this.ipPattern.test(url.hostname)
+                    || this.xyMcdnPattern.test(url.hostname)
+                    || this.isMcdnHost(url.hostname);
+            },
+
+            isBiliCdnHost(hostname) {
+                return hostname.endsWith('.bilivideo.com')
+                    || hostname.endsWith('.bilivideo.cn')
+                    || hostname.endsWith('.bilivideo.net')
+                    || hostname.endsWith('.akamaized.net');
+            },
+
+            isKnownSlowHost(url, config) {
+                const hostname = url.hostname.toLowerCase();
+
+                if (this.isPcdnHost(url) || hostname.endsWith('.szbdyd.com')) {
+                    return true;
+                }
+
+                if (hostname.includes('mirroraliov') || hostname.includes('mirrorcosov') || hostname.includes('mirrorhwov')) {
+                    return true;
+                }
+
+                return config.rewriteAkamai && hostname.endsWith('.akamaized.net');
+            },
+
+            cleanHost(host) {
+                const trimmed = String(host || '').trim();
+                return trimmed.replace(/^https?:\/\//i, '').replace(/\/.*$/, '');
+            },
+
+            replaceHost(url, host) {
+                const cleanedHost = this.cleanHost(host);
+                if (!cleanedHost) {
+                    return url.toString();
+                }
+
+                const next = new URL(url.toString());
+                next.protocol = 'https:';
+                next.host = cleanedHost;
+                if (!cleanedHost.includes(':')) {
+                    next.port = '';
+                }
+                return next.toString();
+            },
+
+            proxyUrl(url, config) {
+                const next = new URL(`https://${this.cleanHost(config.proxyHost)}/`);
+                next.searchParams.set('url', url.toString());
+                return next.toString();
+            },
+
+            shouldProxyMcdn(url, config) {
+                if (!this.isMcdnHost(url.hostname)) {
+                    return false;
+                }
+
+                if (config.mcdnStrategy === 'proxy-all') {
+                    return true;
+                }
+
+                return config.mcdnStrategy === 'proxy-v1' && url.pathname.startsWith('/v1/resource/');
+            },
+
+            rewriteUrlDetail(value, rawConfig) {
+                const config = this.normalizeConfig(rawConfig);
+                const original = String(value || '');
+                const url = this.parseUrl(original);
+
+                if (!config.enabled || !url || !this.isMediaUrl(url) || url.hostname === this.cleanHost(config.proxyHost)) {
+                    return {
+                        changed: false,
+                        original,
+                        url: original,
+                        reason: 'ignored',
+                    };
+                }
+
+                if (url.hostname.endsWith('.szbdyd.com')) {
+                    const source = url.searchParams.get('xy_usource');
+                    if (source) {
+                        const rewritten = this.replaceHost(url, source);
+                        return {
+                            changed: rewritten !== original,
+                            original,
+                            url: rewritten,
+                            reason: 'szbdyd-source',
+                            targetHost: this.cleanHost(source),
+                        };
+                    }
+                }
+
+                if (this.shouldProxyMcdn(url, config)) {
+                    const rewritten = this.proxyUrl(url, config);
+                    return {
+                        changed: rewritten !== original,
+                        original,
+                        url: rewritten,
+                        reason: 'mcdn-proxy',
+                        targetHost: this.cleanHost(config.proxyHost),
+                    };
+                }
+
+                const force = config.mode === 'force';
+                if (this.isKnownSlowHost(url, config) || (force && this.isBiliCdnHost(url.hostname))) {
+                    const rewritten = this.replaceHost(url, config.pcdnHost);
+                    return {
+                        changed: rewritten !== original,
+                        original,
+                        url: rewritten,
+                        reason: this.isPcdnHost(url) ? 'pcdn-host' : 'cdn-host',
+                        targetHost: this.cleanHost(config.pcdnHost),
+                    };
+                }
+
+                return {
+                    changed: false,
+                    original,
+                    url: original,
+                    reason: 'ok',
+                };
+            },
+
+            rewriteObject(value, rawConfig, state, depth, seen) {
+                const config = this.normalizeConfig(rawConfig);
+                const tracker = state || { changed: false, rewrites: [] };
+                const level = depth || 0;
+                const visited = seen || new WeakSet();
+
+                if (!config.enabled || value == null || level > config.maxDepth) {
+                    return value;
+                }
+
+                if (typeof value === 'string') {
+                    const detail = this.rewriteUrlDetail(value, config);
+                    if (detail.changed) {
+                        tracker.changed = true;
+                        tracker.rewrites.push(detail);
+                    }
+                    return detail.url;
+                }
+
+                if (typeof value !== 'object') {
+                    return value;
+                }
+
+                if (visited.has(value)) {
+                    return value;
+                }
+                visited.add(value);
+
+                if (Array.isArray(value)) {
+                    for (let index = 0; index < value.length; index += 1) {
+                        value[index] = this.rewriteObject(value[index], config, tracker, level + 1, visited);
+                    }
+                    return value;
+                }
+
+                Object.keys(value).forEach(key => {
+                    value[key] = this.rewriteObject(value[key], config, tracker, level + 1, visited);
+                });
+
+                return value;
+            },
+
+            rewritePayload(payload, source) {
+                const tracker = { changed: false, rewrites: [] };
+
+                try {
+                    const rewritten = this.rewriteObject(payload, this.config, tracker);
+                    this.record(tracker.rewrites, source);
+                    return rewritten;
+                } catch (error) {
+                    console.warn('[Make Bilibili Better] playback CDN rewrite failed', error);
+                    return payload;
+                }
+            },
+
+            record(rewrites, source) {
+                if (!rewrites || rewrites.length === 0) {
+                    return;
+                }
+
+                this.state.lastSource = source;
+                this.state.rewriteCount += rewrites.length;
+                this.state.rewrites = this.state.rewrites.concat(rewrites.map(item => ({
+                    at: new Date().toISOString(),
+                    source,
+                    reason: item.reason,
+                    targetHost: item.targetHost,
+                    from: item.original,
+                    to: item.url,
+                }))).slice(-50);
+
+                this.renderStatus();
+            },
+
+            isInterestingFetch(input) {
+                const url = typeof input === 'string' ? input : input?.url;
+                return typeof url === 'string'
+                    && (
+                        url.includes('/x/player')
+                        || url.includes('/pgc/player')
+                        || url.includes('playurl')
+                        || url.includes('bilivideo')
+                    );
+            },
+
+            patchJsonParse(root) {
+                if (!root.JSON || root.JSON.parse.__mbbAcceleratorPatched === '1') {
+                    return;
+                }
+
+                const accelerator = this;
+                root.JSON.parse = function patchedJsonParse(text) {
+                    const parsed = accelerator.nativeJsonParse.apply(this, arguments);
+                    if (typeof text === 'string' && text.includes('bilivideo')) {
+                        return accelerator.rewritePayload(parsed, 'JSON.parse');
+                    }
+                    return parsed;
+                };
+
+                Object.defineProperty(root.JSON.parse, '__mbbAcceleratorPatched', {
+                    configurable: true,
+                    value: '1',
+                });
+            },
+
+            patchFetch(root) {
+                if (!root.fetch || root.fetch.__mbbAcceleratorPatched === '1') {
+                    return;
+                }
+
+                const accelerator = this;
+                const nativeFetch = root.fetch;
+                root.fetch = function patchedFetch() {
+                    const args = arguments;
+                    return nativeFetch.apply(this, args).then(response => {
+                        if (!accelerator.config.enabled || !accelerator.isInterestingFetch(args[0])) {
+                            return response;
+                        }
+
+                        const contentType = response.headers?.get('content-type');
+                        if (contentType && !contentType.includes('json') && !contentType.includes('text')) {
+                            return response;
+                        }
+
+                        return response.clone().text().then(text => {
+                            if (!text || !text.includes('bilivideo')) {
+                                return response;
+                            }
+
+                            let parsed;
+                            const tracker = { changed: false, rewrites: [] };
+                            try {
+                                parsed = accelerator.nativeJsonParse(text);
+                                accelerator.rewriteObject(parsed, accelerator.config, tracker);
+                            } catch (error) {
+                                return response;
+                            }
+
+                            if (!tracker.changed) {
+                                return response;
+                            }
+
+                            accelerator.record(tracker.rewrites, 'fetch');
+                            const HeadersCtor = root.Headers || Headers;
+                            const ResponseCtor = root.Response || Response;
+                            const headers = new HeadersCtor(response.headers);
+                            headers.delete('content-length');
+                            return new ResponseCtor(JSON.stringify(parsed), {
+                                status: response.status,
+                                statusText: response.statusText,
+                                headers,
+                            });
+                        }).catch(() => response);
+                    });
+                };
+
+                Object.defineProperty(root.fetch, '__mbbAcceleratorPatched', {
+                    configurable: true,
+                    value: '1',
+                });
+            },
+
+            patchGlobalPlayInfo(root, name) {
+                let currentValue;
+                const existing = Object.getOwnPropertyDescriptor(root, name);
+                if (existing && existing.configurable === false) {
+                    return;
+                }
+
+                if (existing && 'value' in existing) {
+                    currentValue = this.rewritePayload(existing.value, name);
+                }
+
+                try {
+                    Object.defineProperty(root, name, {
+                        configurable: true,
+                        enumerable: true,
+                        get() {
+                            return currentValue;
+                        },
+                        set: value => {
+                            currentValue = this.rewritePayload(value, name);
+                        },
+                    });
+                } catch (error) {
+                    if (root[name]) {
+                        root[name] = this.rewritePayload(root[name], name);
+                    }
+                }
+            },
+
+            renderStatus() {
+                // No UI is installed; status is available through MBBPlaybackAccelerator.getStats().
+            },
+
+            install() {
+                const root = utils.getPageWindow();
+                if (root.__MBB_BILI_ACCELERATOR_INSTALLED__) {
+                    return;
+                }
+                root.__MBB_BILI_ACCELERATOR_INSTALLED__ = true;
+
+                this.config = this.loadConfig(root);
+                this.nativeJsonParse = root.JSON?.parse || JSON.parse;
+                this.patchJsonParse(root);
+                this.patchFetch(root);
+                this.patchGlobalPlayInfo(root, '__playinfo__');
+                this.patchGlobalPlayInfo(root, '__INITIAL_STATE__');
+
+                root.MBBPlaybackAccelerator = {
+                    getConfig: () => Object.assign({}, this.config),
+                    setConfig: nextConfig => {
+                        this.saveConfig(root, Object.assign({}, this.config, nextConfig || {}));
+                        this.renderStatus();
+                        return Object.assign({}, this.config);
+                    },
+                    getStats: () => JSON.parse(JSON.stringify(this.state)),
+                    rewriteUrl: url => this.rewriteUrlDetail(url, this.config).url,
+                };
+
+                if (this.shouldMonitorPlayback()) {
+                    utils.onBodyReady(() => {
+                        this.attachPlaybackMonitor(root);
+                        utils.observeAddedElements(node => this.attachPlaybackMonitor(root, node));
+                    });
+                }
+
+                console.info('[Make Bilibili Better] adaptive playback CDN accelerator installed', root.MBBPlaybackAccelerator.getConfig());
+            },
+        },
+
         trackingCleanup: {
             shouldRun() {
                 return true;
@@ -660,6 +1254,7 @@
 
     const startup = {
         earlyModules: [
+            modules.playbackCdnAccelerator,
             modules.trackingCleanup,
             modules.playbackCapabilityUnlocks,
         ],
