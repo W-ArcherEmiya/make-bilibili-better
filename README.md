@@ -1,8 +1,8 @@
-# Make Bilibili Better
+# Make Bilibili Better（海外优化版）
 
-`Make Bilibili Better` 是一个用于优化哔哩哔哩网页体验的用户脚本。
+`Make Bilibili Better（海外优化版）` 是一个用于优化哔哩哔哩网页体验的用户脚本。
 
-当前版本提供首页净化、动态页宽屏、专栏复制、视频裁切模式、链接参数清理、自适应海外播放 CDN 加速，以及杜比全景声 / 8K / HDR / 直播高画质能力补丁、轻量级直播 / 番剧增强。
+优化哔哩哔哩网页体验，支持海外播放地址优化，适合留学生和海外用户观看 B 站。
 
 ## 功能
 
@@ -15,7 +15,6 @@
 - 启用播放地址 CDN 优化（海外的一定要试试）
 - 提前启用杜比全景声 / 8K / HDR / 直播高画质相关能力声明
 - 隐藏直播间部分无用界面元素
-- 连续播放失败时提示直播清晰度可能不可用
 - 番剧播放报错时进行一次轻量重试
 
 ## 安装
@@ -24,7 +23,7 @@
 
 然后通过 Greasy Fork 安装脚本：
 
-[安装 Make Bilibili Better](https://greasyfork.org/zh-CN/scripts/572675-make-bilibili-better)
+[安装 Make Bilibili Better（海外优化版）](https://greasyfork.org/zh-CN/scripts/572675-make-bilibili-better)
 
 ## 主要支持页面
 
@@ -49,16 +48,16 @@
 
 ## 最近更新
 
+### 1.2.2
+
+- 标题更新为 `Make Bilibili Better（海外优化版）`
+- 更新脚本描述，突出海外播放地址优化和留学生 / 海外用户使用场景
+
 ### 1.2.1
 
 - 新增自适应播放 CDN 加速模块
 - 支持 `bilibili.tv` 播放相关页面
 - 提供 `MBBPlaybackAccelerator` 控制台接口用于查看配置和重写统计
-
-### 1.1.2
-
-- 修正脚本版本号和描述文案
-- 明确首页广告净化、杜比高画质与直播 / 番剧增强等功能说明
 
 完整版本历史见 [CHANGELOG.md](./CHANGELOG.md)。
 

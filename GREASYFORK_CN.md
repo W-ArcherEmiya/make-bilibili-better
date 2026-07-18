@@ -1,6 +1,8 @@
 ## 简介
 
-Make Bilibili Better 是一个用于优化哔哩哔哩网页体验的用户脚本。
+Make Bilibili Better（海外优化版）是一个用于优化哔哩哔哩网页体验的用户脚本。
+
+优化哔哩哔哩网页体验，支持海外播放地址优化，适合留学生和海外用户观看 B 站。
 
 当前版本主要提供以下功能：
 
@@ -25,10 +27,9 @@ https://github.com/kookxiang/Make-BiliBili-Great-Again
 
 ## 版本说明
 
-当前发布版本：`v1.2.1`
+当前发布版本：`v1.2.2`
 
 本次更新包含：
 
-- 新增自适应播放 CDN 加速
-- 支持 `bilibili.tv` 播放页面
-- 更新脚本说明与文档
+- 标题更新为 `Make Bilibili Better（海外优化版）`
+- 更新脚本说明，突出海外播放地址优化

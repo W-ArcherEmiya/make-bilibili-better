@@ -1,6 +1,11 @@
 # Changelog
 
-本文件记录 `Make Bilibili Better` 的版本变化。README 只保留当前版本和上一个版本的更新内容。
+本文件记录 `Make Bilibili Better（海外优化版）` 的版本变化。README 只保留当前版本和上一个版本的更新内容。
+
+## 1.2.2
+
+- 标题更新为 `Make Bilibili Better（海外优化版）`
+- 更新脚本描述，突出海外播放地址优化和留学生 / 海外用户使用场景
 
 ## 1.2.1
 
