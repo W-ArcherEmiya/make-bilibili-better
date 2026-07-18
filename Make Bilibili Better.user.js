@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         Make Bilibili Better
+// @name         Make Bilibili Better（海外优化版）
 // @namespace    local.make-bilibili-better
-// @version      1.2.1
-// @description  优化哔哩哔哩网页体验，提供首页广告净化、动态页宽屏、专栏复制、视频裁切模式、链接参数清理、自适应海外播放 CDN 加速，以及杜比高画质与直播 / 番剧增强。
+// @version      1.2.2
+// @description  优化哔哩哔哩网页体验，支持海外播放地址优化，适合留学生和海外用户观看 B 站。
 // @author       ArcherEmiya
 // @license      MIT
 // @match        https://*.bilibili.com/*
