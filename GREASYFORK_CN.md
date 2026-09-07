@@ -27,9 +27,9 @@ https://github.com/kookxiang/Make-BiliBili-Great-Again
 
 ## 版本说明
 
-当前发布版本：`v1.2.2`
+当前发布版本：`v1.2.3`
 
 本次更新包含：
 
-- 标题更新为 `Make Bilibili Better（海外优化版）`
-- 更新脚本说明，突出海外播放地址优化
+- 默认关闭 Safari UA 伪装，修复部分 Chromium 浏览器播放页鼠标隐藏或点击异常
+- 如需手动启用，在控制台执行 `localStorage.setItem('mbb-safari-ua-patch-enabled', '1')` 后刷新页面

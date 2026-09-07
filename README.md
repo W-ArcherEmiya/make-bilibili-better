@@ -46,18 +46,35 @@
 - `https://www.bilibili.com/festival/*`
 - `https://www.bilibili.com/blackboard/*`
 
+## 可选 Safari UA 伪装
+
+默认不启用 Safari UA 伪装，避免 Chromium 浏览器进入 B 站播放器的 Safari 模式后出现鼠标隐藏或点击异常。
+
+如果仍然需要手动启用，在 B 站页面控制台执行：
+
+```js
+localStorage.setItem('mbb-safari-ua-patch-enabled', '1');
+location.reload();
+```
+
+关闭时执行：
+
+```js
+localStorage.removeItem('mbb-safari-ua-patch-enabled');
+location.reload();
+```
+
 ## 最近更新
+
+### 1.2.3
+
+- 默认关闭 Safari UA 伪装，修复部分 Chromium 浏览器播放页鼠标隐藏或点击异常
+- 保留手动 opt-in 开关：`localStorage.setItem('mbb-safari-ua-patch-enabled', '1')`
 
 ### 1.2.2
 
 - 标题更新为 `Make Bilibili Better（海外优化版）`
 - 更新脚本描述，突出海外播放地址优化和留学生 / 海外用户使用场景
-
-### 1.2.1
-
-- 新增自适应播放 CDN 加速模块
-- 支持 `bilibili.tv` 播放相关页面
-- 提供 `MBBPlaybackAccelerator` 控制台接口用于查看配置和重写统计
 
 完整版本历史见 [CHANGELOG.md](./CHANGELOG.md)。
 
