@@ -2,6 +2,12 @@
 
 本文件记录 `Make Bilibili Better（海外优化版）` 的版本变化。README 只保留当前版本和上一个版本的更新内容。
 
+## 1.2.3
+
+- 默认关闭 Safari UA 伪装，避免 Chromium 浏览器进入 B 站播放器 Safari 模式后出现鼠标隐藏或点击异常
+- 保留手动 opt-in 开关：在 B 站页面控制台执行 `localStorage.setItem('mbb-safari-ua-patch-enabled', '1')` 后刷新页面
+- 保留杜比全景声 / 8K / HDR / 直播高画质相关 localStorage 能力声明和 HEVC error patch
+
 ## 1.2.2
 
 - 标题更新为 `Make Bilibili Better（海外优化版）`

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Make Bilibili Better（海外优化版）
 // @namespace    local.make-bilibili-better
-// @version      1.2.2
+// @version      1.2.3
 // @description  优化哔哩哔哩网页体验，支持海外播放地址优化，适合留学生和海外用户观看 B 站。
 // @author       ArcherEmiya
 // @license      MIT
@@ -34,6 +34,7 @@
             playbackFlag: 'bilibili_player_force_DolbyAtmos&8K&HDR',
             hdrFlag: 'bilibili_player_force_hdr',
             hevcError: 'enableHEVCError',
+            safariUaPatchEnabled: 'mbb-safari-ua-patch-enabled',
         },
         playbackCapabilityPaths: [
             '/watchlater',
@@ -875,8 +876,17 @@
                     });
                 }
 
-                utils.setNavigatorValue('userAgent', CONFIG.userAgent.safariMac);
-                utils.setNavigatorValue('platform', CONFIG.userAgent.platform);
+                let shouldPatchSafariUa = false;
+                try {
+                    shouldPatchSafariUa = localStorage.getItem(CONFIG.storage.safariUaPatchEnabled) === '1';
+                } catch (error) {
+                    shouldPatchSafariUa = false;
+                }
+
+                if (shouldPatchSafariUa) {
+                    utils.setNavigatorValue('userAgent', CONFIG.userAgent.safariMac);
+                    utils.setNavigatorValue('platform', CONFIG.userAgent.platform);
+                }
             },
         },
 
