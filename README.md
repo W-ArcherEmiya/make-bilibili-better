@@ -27,6 +27,8 @@
 
 ## 侧边调控台
 
+面板自动跟随可识别的页面主题，无法判断时跟随系统深浅色。侧边闪电支持上下拖动并记住位置，闲置时自动淡化。
+
 ![Make Bilibili Better侧边调控台演示](https://raw.githubusercontent.com/W-ArcherEmiya/Images/main/make-bilibili-better/ezgif-15a3ef23b8220d92.gif)
 
 点击右侧闪电打开面板。“功能设置”提供10个开关及自动 / 温和 / 增强播放策略；“当前页面”显示本页相关功能、地址优化次数和播放异常记录，可复制诊断信息。
@@ -94,15 +96,15 @@ location.reload();
 
 ## 最近更新
 
+### 1.3.1
+
+- 新增自动深色适配，减轻文字字重，侧边闪电闲置时淡化
+- 优化底部面板展开布局和播放策略状态说明
+
 ### 1.3.0
 
 - 新增侧边闪电调控台，支持功能设置、当前页面状态和诊断复制
 - HEVC兼容补丁默认关闭，兼容设置支持手动开启并刷新应用
-
-### 1.2.3
-
-- 默认关闭 Safari UA 伪装，修复部分 Chromium 浏览器播放页鼠标隐藏或点击异常
-- 保留手动 opt-in 开关：`localStorage.setItem('mbb-safari-ua-patch-enabled', '1')`
 
 完整版本历史见 [CHANGELOG.md](./CHANGELOG.md)。
 
