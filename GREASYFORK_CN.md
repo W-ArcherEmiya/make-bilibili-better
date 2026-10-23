@@ -8,7 +8,7 @@ Make Bilibili Better（海外优化版）是一个用于优化哔哩哔哩网页
 
 - 隐藏首页广告卡片和空白占位卡片
 - 优化首页推荐流间距
-- 为 `动态页` 提供宽屏模式按钮（右下角）
+- 通过侧边闪电调控台切换动态宽屏、裁切和页面净化设置
 - 恢复专栏正文复制
 - 自动清理常见链接跟踪参数
 - 为普通视频播放器增加“裁切模式”
@@ -21,15 +21,15 @@ Make Bilibili Better（海外优化版）是一个用于优化哔哩哔哩网页
 项目地址：
 https://github.com/W-ArcherEmiya/make-bilibili-better
 
-致谢：
-部分功能思路参考自 kookxiang 的 `Make BiliBili Great Again`
-https://github.com/kookxiang/Make-BiliBili-Great-Again
+## 功能演示
+
+![Make Bilibili Better侧边调控台演示](https://raw.githubusercontent.com/W-ArcherEmiya/Images/main/make-bilibili-better/ezgif-15a3ef23b8220d92.gif)
 
 ## 版本说明
 
-当前发布版本：`v1.2.3`
+当前发布版本：`v1.3.0`
 
 本次更新包含：
 
-- 默认关闭 Safari UA 伪装，修复部分 Chromium 浏览器播放页鼠标隐藏或点击异常
-- 如需手动启用，在控制台执行 `localStorage.setItem('mbb-safari-ua-patch-enabled', '1')` 后刷新页面
+- 新增侧边调控台，支持功能设置、当前页面状态和诊断复制
+- HEVC和Safari UA默认关闭；如需启用，在“高级兼容设置”中打开并点击“刷新应用”
