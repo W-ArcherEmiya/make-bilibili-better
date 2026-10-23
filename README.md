@@ -8,7 +8,7 @@
 
 - 隐藏首页广告卡片和空白占位卡片
 - 收紧首页推荐流的卡片间距
-- 为 `动态页` 提供宽屏模式切换按钮（右下角）
+- 通过侧边调控台切换动态宽屏、裁切和页面净化设置
 - 恢复专栏页面正文复制
 - 自动清理常见的 B 站跟踪参数
 - 为普通视频播放器增加“裁切模式”开关
@@ -24,6 +24,16 @@
 然后通过 Greasy Fork 安装脚本：
 
 [安装 Make Bilibili Better（海外优化版）](https://greasyfork.org/zh-CN/scripts/572675-make-bilibili-better)
+
+## 侧边调控台
+
+![Make Bilibili Better侧边调控台演示](https://raw.githubusercontent.com/W-ArcherEmiya/Images/main/make-bilibili-better/ezgif-15a3ef23b8220d92.gif)
+
+点击右侧闪电打开面板。“功能设置”提供10个开关及自动 / 温和 / 增强播放策略；“当前页面”显示本页相关功能、地址优化次数和播放异常记录，可复制诊断信息。
+
+设置按当前站点保存，`www.bilibili.com`、动态站、直播站和国际站各自独立。普通设置即时生效；高画质声明、HEVC和Safari UA变更需点击“刷新应用”。播放策略用于后续请求，当前视频可刷新应用。全屏观看时隐藏入口。
+
+HEVC和Safari UA默认关闭，可在“高级兼容设置”中手动开启。空白卡片清理、链接清理、专栏复制、直播异常提醒和番剧重试自动运行，无需额外开关。
 
 ## 主要支持页面
 
@@ -64,23 +74,44 @@ localStorage.removeItem('mbb-safari-ua-patch-enabled');
 location.reload();
 ```
 
+## 可选 HEVC 错误标记兼容
+
+默认关闭，保留播放器原生的 HEVC 错误处理。仅在需要排查兼容问题时手动开启；此补丁不增加 HEVC 解码能力，可能影响播放器降级。
+
+在 B 站页面控制台执行以下命令并刷新后启用：
+
+```js
+localStorage.setItem('mbb-hevc-patch-enabled', '1');
+location.reload();
+```
+
+关闭并恢复原生错误处理：
+
+```js
+localStorage.removeItem('mbb-hevc-patch-enabled');
+location.reload();
+```
+
 ## 最近更新
+
+### 1.3.0
+
+- 新增侧边闪电调控台，支持功能设置、当前页面状态和诊断复制
+- HEVC兼容补丁默认关闭，兼容设置支持手动开启并刷新应用
 
 ### 1.2.3
 
 - 默认关闭 Safari UA 伪装，修复部分 Chromium 浏览器播放页鼠标隐藏或点击异常
 - 保留手动 opt-in 开关：`localStorage.setItem('mbb-safari-ua-patch-enabled', '1')`
 
-### 1.2.2
-
-- 标题更新为 `Make Bilibili Better（海外优化版）`
-- 更新脚本描述，突出海外播放地址优化和留学生 / 海外用户使用场景
-
 完整版本历史见 [CHANGELOG.md](./CHANGELOG.md)。
 
-## 致谢
+## 本地开发
 
-部分功能思路参考自 kookxiang 的 `Make BiliBili Great Again`。
+正式脚本为单文件，不依赖远程UI资源。调控台模板和逻辑位于 `src/control-panel.html` 与 `src/control-panel.js`；修改后运行 `node scripts/build-control-panel.cjs` 生成到用户脚本。`preview/control-panel.html` 仍保留为独立设计预览。
 
-参考项目：
-https://greasyfork.org/zh-CN/scripts/415714-make-bilibili-great-again
+验证：`node --check "Make Bilibili Better.user.js"`。安装Playwright且本机有Edge时，可运行 `node tests/control-panel.cjs`；也可通过 `PLAYWRIGHT_PATH` 指定已有Playwright模块路径。测试使用隔离页面，不访问真实账号。
+
+## 第三方许可证
+
+内置图标来自Lucide（ISC许可证），见 [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md)。

@@ -1,0 +1,15 @@
+const fs = require('node:fs');
+const path = require('node:path');
+const root = path.resolve(__dirname, '..');
+const file = path.join(root, 'Make Bilibili Better.user.js');
+const template = fs.readFileSync(path.join(root, 'src/control-panel.html'), 'utf8');
+const runtime = fs.readFileSync(path.join(root, 'src/control-panel.js'), 'utf8');
+const notices = fs.readFileSync(path.join(root, 'THIRD_PARTY_NOTICES.md'), 'utf8');
+const source = fs.readFileSync(file, 'utf8');
+const start = '    // BEGIN GENERATED CONTROL PANEL';
+const end = '    // END GENERATED CONTROL PANEL';
+const from = source.indexOf(start), to = source.indexOf(end);
+if (from < 0 || to < from) throw new Error('Control panel markers missing');
+const generated = `${start}\n/*\n${notices.replaceAll('*/', '* /')}\n*/\n    const CONTROL_PANEL_TEMPLATE = ${JSON.stringify(template)};\n${runtime}\n${end}`;
+fs.writeFileSync(file, source.slice(0, from) + generated + source.slice(to + end.length));
+console.log('Built self-contained control panel.');
