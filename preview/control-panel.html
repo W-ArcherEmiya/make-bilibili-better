@@ -144,10 +144,41 @@ details[open]>summary svg{transform:rotate(90deg)}
 .panel-head{padding:12px 16px}
 .panel .body{padding:0 16px}
 .panel .footer{padding:10px 16px}
-.dock{touch-action:none;user-select:none;cursor:grab}
+.panel .label,.panel .segments button{font-weight:400}
+.panel summary.label,.panel .section-heading,.panel .tabs button[aria-selected=true]{font-weight:500}
+.dock{touch-action:none;user-select:none;cursor:grab;opacity:.45;transition:opacity .2s ease}
+.dock:hover,.dock:focus-visible,.dock.dragging,.dock.discharging{opacity:1}
+@media(hover:none){.dock{opacity:1}}
 .dock.dragging{cursor:grabbing}
 .dock.dragging .dock-bolt svg{animation:none!important}
 .dock.dragging .electric-field{opacity:0!important}
+.panel[data-theme=dark],dialog[data-theme=dark]{color-scheme:dark;--line:#383b40;--blue-ink:#69d5ff;background:#202124;color:#e6e8eb;border-color:#41454b;box-shadow:0 12px 38px #0005}
+.panel[data-theme=dark] .panel-head,.panel[data-theme=dark] .footer{background:#27292d}
+.panel[data-theme=dark] .panel-title{color:#edf2f5}
+.panel[data-theme=dark] .tabs{background:#202124}
+.panel[data-theme=dark] .tabs button,.panel[data-theme=dark] .segments button{color:#b9c0c8}
+.panel[data-theme=dark] .tabs button[aria-selected=true]{color:#69d5ff}
+.panel[data-theme=dark] .segments{background:#303338}
+.panel[data-theme=dark] .segments button[aria-pressed=true]{background:#15485b;color:#8cddff}
+.panel[data-theme=dark] .segments button[data-mode=gentle][aria-pressed=true]{background:#512d3b;color:#ffadc6}
+.panel[data-theme=dark] .segments button[data-mode=force][aria-pressed=true]{background:#493d20;color:#ffe088}
+.panel[data-theme=dark] .hint,.panel[data-theme=dark] .kv,.panel[data-theme=dark] .summary-state,.panel[data-theme=dark] .section-heading,.panel[data-theme=dark] .footer span,.panel[data-theme=dark] .version,.panel[data-theme=dark] .stat-name,.panel[data-theme=dark] .stat-number small,.panel[data-theme=dark] .log time,.panel[data-theme=dark] .mode-current-note{color:#b4bbc4}
+.panel[data-theme=dark] .kv span:last-child{color:#e0e4e9}
+.panel[data-theme=dark] .icon-button,.panel[data-theme=dark] summary svg{color:#aebdc8}
+.panel[data-theme=dark] .icon-button:hover{background:#383c42}
+.panel[data-theme=dark] .toggle:not(:checked){background:#626973}
+.panel[data-theme=dark] .status{color:#8cd9b7}
+.panel[data-theme=dark] .status .tag{background:#15485b;color:#8cddff}
+.panel[data-theme=dark] .warning{background:#3e3422;color:#f4cf8a}
+.panel[data-theme=dark] .pending,.panel[data-theme=dark] .pending-state{color:#f4cf8a}
+.panel[data-theme=dark] .logo{background:#40391e;border-color:#75612b}
+.panel[data-theme=dark] .body{scrollbar-color:#69717c #202124}
+.panel[data-theme=dark] .command,dialog[data-theme=dark] .command{background:#303338;color:#e6e8eb;border-color:#59616b}
+.panel[data-theme=dark] .command:hover,dialog[data-theme=dark] .command:hover{background:#3a4047}
+.panel[data-theme=dark] #mode-hint{background:#303338;color:#e6e8eb;border-color:#59616b;box-shadow:0 6px 24px #0006}
+dialog[data-theme=dark] p{color:#b4bbc4}
+dialog[data-theme=dark] .primary{background:#00aeec;color:#102f3e;border-color:#00aeec}
+dialog[data-theme=dark] .primary:hover{background:#62d0f7}
 </style>
 </head>
 <body>
@@ -160,7 +191,7 @@ details[open]>summary svg{transform:rotate(90deg)}
 </main>
 <button class="dock" id="dock" title="打开调控台" aria-label="打开调控台"><span class="dock-bolt" aria-hidden="true"><i data-lucide="zap"></i><svg class="electric-field" viewBox="0 0 44 48"><path d="M14 3 8 10 13 14 4 22 10 24 6 32 M30 4 36 12 31 17 40 24 34 29 39 36 M15 34 11 40 19 39 23 46"/><path class="arc-core" d="M14 3 8 10 13 14 4 22 10 24 6 32 M30 4 36 12 31 17 40 24 34 29 39 36 M15 34 11 40 19 39 23 46"/></svg></span></button>
 <aside class="panel" id="panel" aria-label="Make Bilibili Better调控台">
- <div class="panel-head"><div class="logo"><i data-lucide="zap"></i></div><div class="panel-title"><span class="title-name">Make Bilibili Better</span><span class="version">v1.2.3</span></div><button class="icon-button" id="close" title="收起" aria-label="收起"><i data-lucide="chevron-right"></i></button></div>
+ <div class="panel-head"><div class="logo"><i data-lucide="zap"></i></div><div class="panel-title"><span class="title-name">Make Bilibili Better</span><span class="version">v1.3.1</span></div><button class="icon-button" id="close" title="收起" aria-label="收起"><i data-lucide="chevron-right"></i></button></div>
  <div class="tabs" role="tablist"><button role="tab" id="tab-settings" aria-controls="settings" aria-selected="true" data-tab="settings"><i data-lucide="sliders-horizontal"></i>功能设置</button><button role="tab" id="tab-current" aria-controls="current" aria-selected="false" data-tab="current" tabindex="-1"><i data-lucide="activity"></i>当前页面</button></div>
  <div class="body">
   <div class="tab-page" id="settings" role="tabpanel" aria-labelledby="tab-settings">
@@ -242,6 +273,44 @@ function installDockDragging(read, write) {
 }
 installDockDragging(key => { try { return localStorage.getItem(key); } catch { return null; } },
  (key, value) => { try { localStorage.setItem(key, value); } catch { toast('位置仅在本次页面生效，无法保存。'); } });
+function installPanelTheme(targets, samplePage = true) {
+    const preference = matchMedia('(prefers-color-scheme: dark)');
+    function updateTheme() {
+        const elements = [document.documentElement, document.body].filter(Boolean);
+        let theme;
+        for (const element of elements) {
+            const declared = element.getAttribute('data-theme') || element.getAttribute('data-color-mode') || element.getAttribute('theme');
+            if (declared === 'dark' || declared === 'light') { theme = declared; break; }
+            if (element.classList.contains('dark') || element.classList.contains('light')) {
+                theme = element.classList.contains('dark') ? 'dark' : 'light'; break;
+            }
+        }
+        if (!theme && samplePage) {
+            for (const element of elements.slice().reverse()) {
+                const style = getComputedStyle(element);
+                if (style.colorScheme === 'dark' || style.colorScheme === 'light') { theme = style.colorScheme; break; }
+                const rgb = style.backgroundColor.match(/^rgba?\(([^)]+)\)$/);
+                if (!rgb) continue;
+                const parts = rgb[1].split(',').map(Number);
+                if (parts.length === 4 && parts[3] < 0.95) continue;
+                theme = (parts[0] * .2126 + parts[1] * .7152 + parts[2] * .0722) < 128 ? 'dark' : 'light';
+                break;
+            }
+        }
+        theme ||= preference.matches ? 'dark' : 'light';
+        targets.forEach(element => { if (element.dataset.theme !== theme) element.dataset.theme = theme; });
+    }
+    const observer = new MutationObserver(updateTheme);
+    [document.documentElement, document.body].filter(Boolean).forEach(element => observer.observe(element, {
+        attributes: true, attributeFilter: ['class', 'style', 'data-theme', 'data-color-mode', 'theme']
+    }));
+    preference.addEventListener('change', updateTheme);
+    window.addEventListener('load', updateTheme);
+    updateTheme();
+}
+const previewTheme = new URLSearchParams(location.search).get('theme');
+if (previewTheme === 'dark' || previewTheme === 'light') document.documentElement.dataset.theme = previewTheme;
+installPanelTheme([$('panel'), $('reset-dialog')], false);
 function positionPanel(){
  const dock=$('dock'),panel=$('panel'),hidden=dock.hidden,visibility=dock.style.visibility;
  dock.style.visibility='hidden';dock.hidden=false;
@@ -249,7 +318,10 @@ function positionPanel(){
  dock.hidden=hidden;dock.style.visibility=visibility;
  const logo=panel.querySelector('.logo').getBoundingClientRect();
  const offset=logo.top+logo.height/2-panel.getBoundingClientRect().top;
- const top=Math.max(12,Math.min(anchor.top+anchor.height/2-offset,innerHeight-332));
+ const active=panel.querySelector('.tab-page:not([hidden])');
+ const contentHeight=panel.querySelector('.panel-head').offsetHeight+panel.querySelector('.tabs').offsetHeight+panel.querySelector('.footer').offsetHeight+(active?.offsetHeight||0)+2;
+ const height=Math.min(520,contentHeight,innerHeight-24);
+ const top=Math.max(12,Math.min(anchor.top+anchor.height/2-offset,innerHeight-height-12));
  panel.style.top=`${top}px`;
  panel.style.maxHeight=`${Math.max(0,Math.min(520,innerHeight-top-12))}px`;
 }
@@ -302,7 +374,7 @@ $('crop').onchange=e=>{document.querySelector('.player img').style.transform=e.t
 $('wide').onchange=()=>{};
 $('safari').onchange=e=>{state.safari=e.target.checked;render()};$('apply').onclick=()=>{state.appliedSafari=state.safari;log('模拟刷新完成，兼容性设置已应用。');render();toast('已模拟刷新；未修改浏览器标识')};
 $('clear').onclick=()=>{$('logs').textContent='暂无记录';toast('诊断记录已清空')};
-$('copy').onclick=async()=>{const text=JSON.stringify({preview:true,version:'1.2.3',...state},null,2);try{await navigator.clipboard.writeText(text);toast('已复制诊断信息（模拟数据）')}catch{toast('浏览器未允许复制，请检查剪贴板权限')}};
+$('copy').onclick=async()=>{const text=JSON.stringify({preview:true,version:'1.3.1',...state},null,2);try{await navigator.clipboard.writeText(text);toast('已复制诊断信息（模拟数据）')}catch{toast('浏览器未允许复制，请检查剪贴板权限')}};
 $('reset').onclick=()=>$('reset-dialog').showModal();$('cancel-reset').onclick=()=>$('reset-dialog').close();$('confirm-reset').onclick=()=>{Object.assign(state,{enabled:true,mode:'auto',enhanced:false,issues:0,rewrites:12,safari:false,appliedSafari:false});$('crop').checked=false;$('safari').checked=false;$('wide').checked=true;document.querySelector('.player img').style.transform='';$('crop-state').textContent='未开启';$('logs').textContent='';log('已恢复默认设置。');render();$('reset-dialog').close();toast('已恢复默认设置')};
 // The catalog describes preview controls only; no userscript settings are written.
 const capabilityScenes=['video','bangumi','live','collection'];
@@ -379,7 +451,7 @@ const oldApply=$('apply').onclick;$('apply').onclick=()=>{Object.assign(appliedP
 const oldReset=$('confirm-reset').onclick;$('confirm-reset').onclick=()=>{Object.assign(preferences,defaultPreferences);Object.assign(appliedPreferences,defaultPreferences);configurableFeatures.forEach(f=>$('feature-'+f.id).checked=preferences[f.id]);oldReset()};
 const oldWide=$('wide').onchange;$('wide').onchange=e=>{oldWide(e);render()};
 const oldCrop=$('crop').onchange;$('crop').onchange=e=>{oldCrop(e);render()};
-$('copy').onclick=async()=>{try{await navigator.clipboard.writeText(JSON.stringify({preview:true,version:'1.2.3',page:currentScene,playback:{...state},preferences:{...preferences,crop:$('crop').checked,wide:$('wide').checked},appliedPreferences:{...appliedPreferences}},null,2));toast('已复制诊断信息（模拟数据）')}catch{toast('浏览器未允许复制，请检查剪贴板权限')}};
+$('copy').onclick=async()=>{try{await navigator.clipboard.writeText(JSON.stringify({preview:true,version:'1.3.1',page:currentScene,playback:{...state},preferences:{...preferences,crop:$('crop').checked,wide:$('wide').checked},appliedPreferences:{...appliedPreferences}},null,2));toast('已复制诊断信息（模拟数据）')}catch{toast('浏览器未允许复制，请检查剪贴板权限')}};
 let helpOpenTimer,helpCloseTimer,activeHelpButton;
 const featureHelp={
  crop:'填满画面，可能裁掉边缘。',
@@ -449,6 +521,8 @@ document.addEventListener('click',e=>{if(!e.target.closest('.feature-help,#mode-
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('reset-dialog').open&&!$('mode-hint').hidden){e.preventDefault();e.stopImmediatePropagation();activeHelpButton?.focus();closeModeHelp()}},true);
 document.querySelector('.panel .body').addEventListener('scroll',closeModeHelp);
 window.addEventListener('resize',()=>{closeModeHelp();if(!$('panel').classList.contains('closed'))positionPanel()});
+const panelResize=new ResizeObserver(()=>{if(!$('panel').classList.contains('closed')){closeModeHelp();positionPanel()}});
+panelResize.observe($('settings'));panelResize.observe($('current'));
 const headerBolt=document.querySelector('.panel-head .logo');
 const beamPath='M116 16 L109 4 L103 29 L97 6 L91 26 L85 8 L79 24 L73 10 L67 22 L61 11 L55 21 L49 12 L43 20 L37 13 L31 19 L25 14 L19 18 L13 15 L7 17 L0 16';
 $('dock').insertAdjacentHTML('beforeend','<svg class="discharge-beam" viewBox="0 0 116 32" preserveAspectRatio="none" aria-hidden="true"><path d="'+beamPath+'"/><path class="beam-core" d="'+beamPath+'"/></svg>');

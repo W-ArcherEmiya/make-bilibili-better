@@ -107,6 +107,42 @@
         installDockDragging(key => settings.read(key), (key, value) => {
             if (!settings.write(key, value)) announce('位置仅在本次页面生效，无法保存。');
         });
+        function installPanelTheme(targets, samplePage = true) {
+            const preference = matchMedia('(prefers-color-scheme: dark)');
+            function updateTheme() {
+                const elements = [document.documentElement, document.body].filter(Boolean);
+                let theme;
+                for (const element of elements) {
+                    const declared = element.getAttribute('data-theme') || element.getAttribute('data-color-mode') || element.getAttribute('theme');
+                    if (declared === 'dark' || declared === 'light') { theme = declared; break; }
+                    if (element.classList.contains('dark') || element.classList.contains('light')) {
+                        theme = element.classList.contains('dark') ? 'dark' : 'light'; break;
+                    }
+                }
+                if (!theme && samplePage) {
+                    for (const element of elements.slice().reverse()) {
+                        const style = getComputedStyle(element);
+                        if (style.colorScheme === 'dark' || style.colorScheme === 'light') { theme = style.colorScheme; break; }
+                        const rgb = style.backgroundColor.match(/^rgba?\(([^)]+)\)$/);
+                        if (!rgb) continue;
+                        const parts = rgb[1].split(',').map(Number);
+                        if (parts.length === 4 && parts[3] < 0.95) continue;
+                        theme = (parts[0] * .2126 + parts[1] * .7152 + parts[2] * .0722) < 128 ? 'dark' : 'light';
+                        break;
+                    }
+                }
+                theme ||= preference.matches ? 'dark' : 'light';
+                targets.forEach(element => { if (element.dataset.theme !== theme) element.dataset.theme = theme; });
+            }
+            const observer = new MutationObserver(updateTheme);
+            [document.documentElement, document.body].filter(Boolean).forEach(element => observer.observe(element, {
+                attributes: true, attributeFilter: ['class', 'style', 'data-theme', 'data-color-mode', 'theme']
+            }));
+            preference.addEventListener('change', updateTheme);
+            window.addEventListener('load', updateTheme);
+            updateTheme();
+        }
+        installPanelTheme([$('panel'), $('reset-dialog')]);
         function announce(message) {
             $('toast').textContent = message;
             $('toast').hidden = false;
@@ -122,7 +158,10 @@
             dock.hidden = hidden; dock.style.visibility = visibility;
             const logo = bolt.getBoundingClientRect();
             const offset = logo.top + logo.height / 2 - panel.getBoundingClientRect().top;
-            const top = Math.max(12, Math.min(anchor.top + anchor.height / 2 - offset, window.innerHeight - 332));
+            const contentHeight = root.querySelector('.panel-head').offsetHeight + root.querySelector('.tabs').offsetHeight
+                + root.querySelector('.footer').offsetHeight + $(activeTab).offsetHeight + 2;
+            const height = Math.min(520, contentHeight, window.innerHeight - 24);
+            const top = Math.max(12, Math.min(anchor.top + anchor.height / 2 - offset, window.innerHeight - height - 12));
             panel.style.top = `${top}px`;
             panel.style.maxHeight = `${Math.max(0, Math.min(520, window.innerHeight - top - 12))}px`;
         }
@@ -289,7 +328,10 @@
             root.querySelector('#current .stats').hidden = !playbackPage;
             $('rewrites').textContent = String(accelerator.state.rewriteCount);
             $('issues').textContent = String(settings.issueCount);
-            const rows = [['播放地址优化', !config.enabled ? '已关闭' : `${mode() === 'auto' ? '自动 · ' : ''}${config.mode === 'force' ? '增强' : '温和'}策略`]];
+            const playbackState = !config.enabled ? '已关闭' : !playbackPage || !video ? '已开启 · 暂无播放任务'
+                : cdnSignature() !== initialCdn ? '策略已修改 · 用于后续请求'
+                    : `已开启 · ${mode() === 'auto' ? '自动 · ' : ''}${config.mode === 'force' ? '增强' : '温和'}策略`;
+            const rows = [['播放地址优化', playbackState]];
             if (page.isVideo()) rows.push(['视频裁切', values.crop ? '已启用' : '未开启']);
             if (page.isDynamic()) rows.push(['动态宽屏', values.wide ? '已启用' : '已关闭'], ['动态带货内容隐藏', values.goods ? '已启用' : '已关闭']);
             if (page.isHomepage()) rows.push(['首页广告清理', values.ads ? '已启用' : '已关闭'], ['空白卡片清理', '自动运行'], ['推荐间距优化', values.spacing ? '已启用' : '已关闭']);
@@ -370,6 +412,9 @@
         $('mode-hint').onpointerleave = leaveHelp;
         root.addEventListener('click', event => { if (!event.target.closest('.feature-help,#mode-hint')) hideHelp(); });
         body.addEventListener('scroll', hideHelp);
+        const panelResize = new ResizeObserver(() => { if (opened) { hideHelp(); positionPanel(); } });
+        panelResize.observe($('settings'));
+        panelResize.observe($('current'));
         window.addEventListener('resize', () => { hideHelp(); if (opened) positionPanel(); });
         function checkFullscreen() {
             const fullscreen = !!document.fullscreenElement || !!document.querySelector('.bpx-state-web,.bpx-state-fullscreen,.webfullscreen');
